@@ -9,7 +9,7 @@
 - **Component Library**: Svelte 5 - Runes-based reactivity system
 - **Language**: TypeScript 5.0+ - Type-safe development
 - **Build Tool**: Vite 5.x - Fast development and build
-- **Styling**: Tailwind CSS 3.x - Utility-first CSS framework
+- **Styling**: Plain CSS + Svelte Scoped Styles - Simple, lightweight styling approach
 - **State Management**: Svelte Stores - Built-in reactive stores
 
 ### Backend / API Integration
@@ -58,12 +58,8 @@ cd replicate-video-tester
 npm install
 
 # Install additional packages
-npm install replicate
-npm install date-fns
-npm install -D @types/node
-
-# Set up Tailwind CSS
-npx svelte-add@latest tailwindcss
+npm install replicate date-fns
+npm install -D @types/node @testing-library/svelte @testing-library/jest-dom
 
 # Set up environment variables
 cp .env.example .env
@@ -91,13 +87,14 @@ VITE_COST_BUDGET_LIMIT=10   # Max spend per session ($)
 - `svelte@^5.0.0` - Component framework with runes
 - `@sveltejs/kit@^2.0.0` - Full-stack framework
 - `replicate@latest` - Replicate API client
-- `tailwindcss@^3.0.0` - CSS framework
 - `date-fns@latest` - Date/time formatting utilities
 
 ### Development Dependencies
 - `typescript@^5.0.0` - Type checking
 - `vite@^5.0.0` - Build tool
 - `vitest@latest` - Testing framework
+- `@testing-library/svelte@latest` - Component testing utilities
+- `@testing-library/jest-dom@latest` - DOM testing matchers
 - `eslint@^8.0.0` - Linting
 - `prettier@^3.0.0` - Code formatting
 - `@sveltejs/adapter-static@^3.0.0` - Static site adapter
@@ -105,9 +102,9 @@ VITE_COST_BUDGET_LIMIT=10   # Max spend per session ($)
 ### Why We Chose These
 - **SvelteKit**: Fast, minimal boilerplate, excellent TypeScript support, ideal for rapid prototyping
 - **Replicate SDK**: Official client with built-in polling, error handling, and model schema access
-- **Tailwind CSS**: Rapid UI development without custom CSS
+- **Plain CSS**: Simple, lightweight styling for small UI; Svelte's scoped styles prevent conflicts
 - **TypeScript**: Type safety critical for AI pipeline with multiple stages and complex data flow
-- **Vitest**: Fast, Vite-native testing with similar API to Jest
+- **Vitest + Testing Library**: Fast testing with best practices - tests behavior, not implementation
 
 ---
 
