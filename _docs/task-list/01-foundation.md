@@ -45,15 +45,18 @@ This chunk contains all foundational setup tasks required before development can
 
 **Steps**:
 1. Install Replicate SDK: `npm install replicate`
-2. Install Tailwind CSS: `npx svelte-add@latest tailwindcss`
-3. Install date utilities: `npm install date-fns`
-4. Install type definitions: `npm install -D @types/node`
+2. Install date utilities: `npm install date-fns`
+3. Install type definitions: `npm install -D @types/node`
+4. Install testing utilities: `npm install -D @testing-library/svelte @testing-library/jest-dom`
 5. Verify all packages in package.json
 
 **Acceptance Criteria**:
 - All dependencies install without conflicts
-- Tailwind CSS utilities are available
+- Replicate SDK is importable in TypeScript
+- Testing libraries available for component tests
 - TypeScript recognizes all type definitions
+
+**Note**: Skipping Tailwind CSS - using plain CSS + Svelte scoped styles instead
 
 ---
 
@@ -103,24 +106,27 @@ This chunk contains all foundational setup tasks required before development can
 
 ---
 
-### INIT-005: Tailwind Configuration
+### INIT-005: CSS Setup
 **Status**: Pending
 **Priority**: Medium
-**Dependencies**: INIT-002
+**Dependencies**: INIT-001
 
-**Objective**: Configure Tailwind CSS with custom theme.
+**Objective**: Set up global CSS with custom properties and basic styling.
 
 **Steps**:
-1. Update `tailwind.config.js` with custom colors
-2. Configure content paths for Svelte files
-3. Add custom spacing and typography
-4. Create `src/app.css` with Tailwind directives
-5. Import app.css in `src/routes/+layout.svelte`
+1. Create `src/app.css` with CSS custom properties (--primary, --success, --error, etc.)
+2. Add base styles for common elements (button, input, select)
+3. Set up responsive container and typography
+4. Import app.css in `src/routes/+layout.svelte`
+5. Test that styles apply globally
 
 **Acceptance Criteria**:
-- Tailwind utilities work in components
-- Custom theme values are accessible
+- Global CSS variables defined and accessible
+- Base element styles work across components
+- Layout renders with proper styling
 - No CSS compilation errors
+
+**Note**: Using plain CSS + Svelte scoped styles instead of Tailwind for simplicity
 
 ---
 
