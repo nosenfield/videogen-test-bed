@@ -33,10 +33,16 @@ See [_docs/task-list/01-foundation.md](../_docs/task-list/01-foundation.md)
   - 10 models configured (Veo 3.1, Kling 2.5 Pro, Wan 2.5, etc.)
   - Model selection logic (getModelById, getModelsByCapability, getAllModels) - 9 tests
 
-### Phase 2: Core Integration (10 tasks) - NOT STARTED
-- [ ] API Integration (4 tasks) - See [02-api-integration.md](../_docs/task-list/02-api-integration.md)
-- [ ] State Management (3 tasks) - See [03-state-management.md](../_docs/task-list/03-state-management.md)
-- [ ] Base UI Components (4 tasks) - See [04-base-ui-components.md](../_docs/task-list/04-base-ui-components.md)
+### Phase 2: API Integration & State Management (7 tasks) - COMPLETE ✅
+- [x] API Integration (4 tasks) - See [02-api-integration.md](../_docs/task-list/02-api-integration.md)
+  - API-001: Replicate client initialization with singleton pattern
+  - API-002: Video generation function with type-safe parameters
+  - API-003: Status polling with exponential backoff and timeout handling
+  - API-004: Generation cancellation with error handling
+- [x] State Management (3 tasks) - See [03-state-management.md](../_docs/task-list/03-state-management.md)
+  - STORE-001: Generations store with immutable updates and derived activeCount
+  - STORE-002: Models store with loadModels action
+  - STORE-003: UI state store for loading, errors, and session cost tracking
 
 ### Phase 3: Features & Pages (9 tasks) - NOT STARTED
 - [ ] Feature Components (5 tasks) - See [05-feature-components.md](../_docs/task-list/05-feature-components.md)
@@ -76,15 +82,12 @@ See [_docs/task-list/13-final-steps.md](../_docs/task-list/13-final-steps.md)
 ## What's Next
 
 ### Priority 1 (Immediate - Next Session)
-- [ ] Begin Phase 2: API Integration
-  - Replicate client initialization
-  - Video generation function
-  - Status polling
-  - Cancellation support
-- [ ] Begin State Management
-  - Generations store
-  - Models store
-  - UI state store
+- [ ] Begin Phase 3: Base UI Components
+  - Button, Input, Select, VideoPlayer components
+  - Follow Svelte 5 runes patterns
+  - Use plain CSS styling
+- [ ] Begin Feature Components
+  - ModelSelector, ParameterForm, GenerationStatus, etc.
 
 ### Priority 2 (This Week)
 - [ ] Complete API Integration phase
