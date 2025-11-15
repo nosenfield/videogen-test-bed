@@ -69,10 +69,10 @@
 	/**
 	 * Type guard to check if value is a record with a string field
 	 */
-	function isRecordWithStringField(
+	function isRecordWithStringField<K extends string>(
 		obj: unknown,
-		field: string
-	): obj is Record<string, unknown> & { [key: string]: string } {
+		field: K
+	): obj is Record<string, unknown> & Record<K, string> {
 		return (
 			typeof obj === "object" &&
 			obj !== null &&
@@ -89,7 +89,28 @@
 	 * @returns Video URL string or null if not found
 	 */
 	function extractVideoUrl(output: unknown): string | null {
-		if (!output || typeof output !== "object" || output === null) {
+		if (!output) {
+			return null;
+		}
+
+		// Handle direct string output (some models return URL directly)
+		// Security: Only accept HTTPS URLs per security best practices
+		if (typeof output === "string") {
+			return output.startsWith("https://") ? output : null;
+		}
+
+		// Handle array output (some models return array of URLs)
+		// Security: Only accept HTTPS URLs per security best practices
+		if (Array.isArray(output)) {
+			const firstUrl = output.find((item) => 
+				typeof item === "string" && item.startsWith("https://")
+			);
+			if (firstUrl) {
+				return firstUrl;
+			}
+		}
+
+		if (typeof output !== "object" || output === null) {
 			return null;
 		}
 
@@ -102,6 +123,7 @@
 		if (isRecordWithStringField(obj, "url")) {
 			return obj.url;
 		}
+		// Try nested output array
 		if (Array.isArray(obj.output) && obj.output.length > 0) {
 			const first = obj.output[0];
 			if (typeof first === "string") {
@@ -109,14 +131,28 @@
 			}
 		}
 		
-		// Try to find any string value that looks like a URL
-		for (const value of Object.values(obj)) {
-			if (typeof value === "string" && (value.startsWith("http://") || value.startsWith("https://"))) {
+		// Try to find any string value that looks like a URL (recursively)
+		// Security: Only accept HTTPS URLs per security best practices
+		function findUrl(value: unknown): string | null {
+			if (typeof value === "string" && value.startsWith("https://")) {
 				return value;
 			}
+			if (Array.isArray(value)) {
+				for (const item of value) {
+					const url = findUrl(item);
+					if (url) return url;
+				}
+			}
+			if (typeof value === "object" && value !== null) {
+				for (const nestedValue of Object.values(value)) {
+					const url = findUrl(nestedValue);
+					if (url) return url;
+				}
+			}
+			return null;
 		}
 
-		return null;
+		return findUrl(obj);
 	}
 
 	/**
@@ -171,10 +207,82 @@
 			return;
 		}
 
+		// LIMITATION: DOM manipulation fallback for debounced parameters
+		// This is a workaround for ParameterForm's debounced onChange callback.
+		// When users click Generate quickly after changing form values, the debounced
+		// callback may not have fired yet, leaving the parameters object empty.
+		//
+		// TODO: Refactor to remove this anti-pattern. Options:
+		// 1. Remove debouncing from ParameterForm's onChange (make it immediate)
+		// 2. Add a form submit handler that captures current form state synchronously
+		// 3. Use a ref/binding pattern to access ParameterForm's internal state
+		// 4. Expose a getCurrentValues() method from ParameterForm
+		//
+		// This violates Svelte's reactive architecture but is necessary until
+		// ParameterForm is refactored to support synchronous value access.
+		//
+		// Wait a bit for any pending debounced parameter updates from ParameterForm
+		// This ensures we capture the latest form values before generating
+		await new Promise((resolve) => setTimeout(resolve, 350));
+
+		// If parameters are still empty, read directly from form inputs as fallback
+		// This handles the case where debounced onChange hasn't fired yet
+		let finalParameters = { ...parameters };
+		if (Object.keys(finalParameters).length === 0) {
+			// Find the form inputs within this row and read their values
+			const rowElement = document.querySelector(`[data-row-id="${id}"]`);
+			if (rowElement) {
+				// For each model parameter, find its corresponding input by label text
+				for (const param of model.parameters) {
+					// Find label containing the parameter name (may include * for required fields)
+					const labels = Array.from(rowElement.querySelectorAll('label'));
+					const paramLabel = labels.find((label) => {
+						const labelText = label.textContent || '';
+						// Match if label contains parameter name (with or without *)
+						return labelText.includes(param.name);
+					});
+					
+					if (paramLabel) {
+						// Get the associated input/select using the 'for' attribute
+						const labelFor = paramLabel.getAttribute('for');
+						if (labelFor) {
+							const input = rowElement.querySelector(`#${labelFor}`) as HTMLInputElement | HTMLSelectElement | null;
+							if (input) {
+								if (input instanceof HTMLInputElement) {
+									if (input.type === 'checkbox') {
+										finalParameters[param.name] = input.checked;
+									} else if (input.type === 'number') {
+										const num = parseFloat(input.value);
+										if (!isNaN(num)) finalParameters[param.name] = num;
+									} else {
+										if (input.value) finalParameters[param.name] = input.value;
+									}
+								} else if (input instanceof HTMLSelectElement) {
+									if (input.value) finalParameters[param.name] = input.value;
+								}
+							}
+						}
+					}
+					
+					// Also check for checkboxes (they might not have labels with 'for' attribute)
+					if (param.type === 'boolean') {
+						const checkbox = rowElement.querySelector(`input[type="checkbox"]`) as HTMLInputElement | null;
+						if (checkbox && checkbox.checked !== undefined) {
+							// Try to match by nearby label text
+							const checkboxLabel = checkbox.closest('label');
+							if (checkboxLabel?.textContent?.includes(param.name)) {
+								finalParameters[param.name] = checkbox.checked;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		// Check for required parameters without defaults
 		const missingRequired = model.parameters
 			.filter((p) => p.required && p.default === null)
-			.filter((p) => !(p.name in parameters) || parameters[p.name] === "" || parameters[p.name] === null);
+			.filter((p) => !(p.name in finalParameters) || finalParameters[p.name] === "" || finalParameters[p.name] === null);
 
 		if (missingRequired.length > 0) {
 			setError(`Missing required parameters: ${missingRequired.map((p) => p.name).join(", ")}`);
@@ -205,7 +313,7 @@
 			addGeneration({
 				id: generationId,
 				modelId: selectedModelId,
-				parameters: { ...parameters },
+				parameters: { ...finalParameters },
 				status: "queued",
 				videoUrl: null,
 				error: null,
@@ -215,8 +323,37 @@
 				predictionId: null,
 			});
 
+			// Clean parameters: remove null/undefined/empty string values and ensure correct types
+			const cleanedParameters: Record<string, string | number | boolean> = {};
+			for (const [key, value] of Object.entries(finalParameters)) {
+				// Get parameter definition once
+				const paramDef = model.parameters.find((p) => p.name === key);
+				
+				// Skip null, undefined, or empty string values (except for required parameters)
+				if (value === null || value === undefined || value === "") {
+					// Keep required parameters even if empty (validation will catch it upstream)
+					if (paramDef?.required) {
+						cleanedParameters[key] = value as string;
+					}
+					continue;
+				}
+				
+				// For select parameters with numeric values, ensure they're numbers
+				if (paramDef?.type === "select" && typeof value === "string") {
+					// Check if the option value is numeric
+					const option = paramDef.options?.find((opt) => String(opt.value) === value);
+					if (option && typeof option.value === "number") {
+						cleanedParameters[key] = option.value;
+					} else {
+						cleanedParameters[key] = value;
+					}
+				} else {
+					cleanedParameters[key] = value;
+				}
+			}
+
 			// Start video generation
-			const prediction = await generateVideo(selectedModelId, parameters);
+			const prediction = await generateVideo(selectedModelId, cleanedParameters);
 			currentPredictionId = prediction.id;
 
 			// Check if cancelled before continuing
@@ -273,6 +410,11 @@
 			const finalVideoUrl = finalPrediction.output
 				? extractVideoUrl(finalPrediction.output)
 				: null;
+
+			// Debug: Log output structure if video URL not found (dev only)
+			if (import.meta.env.DEV && finalPrediction.status === "succeeded" && !finalVideoUrl) {
+				console.warn("Video URL extraction failed. Output structure:", JSON.stringify(finalPrediction.output, null, 2));
+			}
 
 			const endTime = finalPrediction.completed_at
 				? new Date(finalPrediction.completed_at).getTime()

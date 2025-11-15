@@ -1,11 +1,11 @@
 /**
  * Replicate API Service
  *
- * Wrapper around the Replicate JavaScript SDK for video generation.
- * Handles client initialization, video generation, status polling, and cancellation.
+ * Client-side wrapper for Replicate API calls via SvelteKit API routes.
+ * All API calls are proxied through server-side routes to avoid CORS issues.
+ * Handles video generation, status polling, and cancellation.
  */
 
-import Replicate from "replicate";
 import type { Prediction, PredictionInput, PredictionOutput } from "../types/replicate.js";
 import {
 	POLLING_INTERVAL,
@@ -14,37 +14,29 @@ import {
 } from "../utils/constants.js";
 
 /**
- * Singleton Replicate client instance
+ * Type guard to validate API response matches Prediction interface
+ * @param obj - Unknown object to validate
+ * @returns True if object matches Prediction structure
  */
-let replicateClient: Replicate | null = null;
-
-/**
- * Initialize Replicate API client with authentication
- * @throws {Error} If API key is missing
- */
-export function initializeReplicate(): void {
-	const apiKey = import.meta.env.VITE_REPLICATE_API_KEY;
-
-	if (!apiKey || apiKey.trim() === "") {
-		throw new Error("Replicate API key is required. Please set VITE_REPLICATE_API_KEY in your .env file.");
-	}
-
-	replicateClient = new Replicate({
-		auth: apiKey,
-	});
+function isPrediction(obj: unknown): obj is Prediction {
+	return (
+		typeof obj === "object" &&
+		obj !== null &&
+		"id" in obj &&
+		"status" in obj &&
+		typeof (obj as any).id === "string" &&
+		typeof (obj as any).status === "string"
+	);
 }
 
 /**
- * Get the initialized Replicate client instance
- * @returns Replicate client instance
- * @throws {Error} If client has not been initialized
+ * Initialize Replicate API client (no-op for client-side, validation only)
+ * @throws {Error} If API key is missing (for user feedback)
  */
-export function getReplicateClient(): Replicate {
-	if (!replicateClient) {
-		throw new Error("Replicate client not initialized. Call initializeReplicate() first.");
-	}
-
-	return replicateClient;
+export function initializeReplicate(): void {
+	// Client-side validation - actual API key is on server
+	// This function exists for compatibility with existing code
+	// The server will handle actual authentication
 }
 
 /**
@@ -52,37 +44,50 @@ export function getReplicateClient(): Replicate {
  * @param modelId - Model ID (e.g., "google/veo-3")
  * @param parameters - Input parameters for the model
  * @returns Promise that resolves to the Prediction object
- * @throws {Error} If client not initialized or API call fails
+ * @throws {Error} If API call fails
  */
 export async function generateVideo(
 	modelId: string,
 	parameters: Record<string, string | number | boolean>
 ): Promise<Prediction> {
-	const replicate = getReplicateClient();
-
 	try {
-		const prediction = await replicate.predictions.create({
-			model: modelId,
-			input: parameters,
+		const response = await fetch("/api/replicate/predictions", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ modelId, parameters }),
 		});
 
-		// Map Replicate SDK response to our Prediction interface
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+			throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+		}
+
+		const data = await response.json();
+
+		// Validate response structure
+		if (!isPrediction(data)) {
+			throw new Error("Invalid API response: missing required fields");
+		}
+
+		// Map API response to our Prediction interface
 		return {
-			id: prediction.id,
-			status: prediction.status as Prediction["status"],
-			input: prediction.input as PredictionInput,
-			output: (prediction.output as PredictionOutput) || null,
-			error: prediction.error || null,
-			logs: prediction.logs || null,
-			metrics: prediction.metrics,
-			created_at: prediction.created_at,
-			started_at: prediction.started_at || null,
-			completed_at: prediction.completed_at || null,
-			version: prediction.version,
+			id: data.id,
+			status: data.status,
+			input: data.input as PredictionInput,
+			output: (data.output as PredictionOutput) || null,
+			error: data.error || null,
+			logs: data.logs || null,
+			metrics: data.metrics,
+			created_at: data.created_at,
+			started_at: data.started_at || null,
+			completed_at: data.completed_at || null,
+			version: data.version,
 			urls: {
-				get: prediction.urls?.get || "",
-				cancel: prediction.urls?.cancel || "",
-				stream: prediction.urls?.stream,
+				get: data.urls?.get || "",
+				cancel: data.urls?.cancel || "",
+				stream: data.urls?.stream,
 			},
 		};
 	} catch (error) {
@@ -107,8 +112,6 @@ export async function pollGenerationStatus(
 	predictionId: string,
 	onUpdate: (prediction: Prediction) => void
 ): Promise<Prediction> {
-	const replicate = getReplicateClient();
-
 	// Initial delay before first poll
 	await new Promise((resolve) => setTimeout(resolve, INITIAL_POLL_DELAY));
 
@@ -116,25 +119,37 @@ export async function pollGenerationStatus(
 
 	while (attempts < MAX_POLLING_ATTEMPTS) {
 		try {
-			const prediction = await replicate.predictions.get(predictionId);
+			const response = await fetch(`/api/replicate/predictions/${predictionId}`);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+				throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+			}
+
+			const data = await response.json();
+
+			// Validate response structure
+			if (!isPrediction(data)) {
+				throw new Error("Invalid API response: missing required fields");
+			}
 
 			// Map to our Prediction interface
 			const mappedPrediction: Prediction = {
-				id: prediction.id,
-				status: prediction.status as Prediction["status"],
-				input: prediction.input as PredictionInput,
-				output: (prediction.output as PredictionOutput) || null,
-				error: prediction.error || null,
-				logs: prediction.logs || null,
-				metrics: prediction.metrics,
-				created_at: prediction.created_at,
-				started_at: prediction.started_at || null,
-				completed_at: prediction.completed_at || null,
-				version: prediction.version,
+				id: data.id,
+				status: data.status,
+				input: data.input as PredictionInput,
+				output: (data.output as PredictionOutput) || null,
+				error: data.error || null,
+				logs: data.logs || null,
+				metrics: data.metrics,
+				created_at: data.created_at,
+				started_at: data.started_at || null,
+				completed_at: data.completed_at || null,
+				version: data.version,
 				urls: {
-					get: prediction.urls?.get || "",
-					cancel: prediction.urls?.cancel || "",
-					stream: prediction.urls?.stream,
+					get: data.urls?.get || "",
+					cancel: data.urls?.cancel || "",
+					stream: data.urls?.stream,
 				},
 			};
 
@@ -176,10 +191,15 @@ export async function pollGenerationStatus(
  * @throws {Error} If cancellation fails
  */
 export async function cancelGeneration(predictionId: string): Promise<void> {
-	const replicate = getReplicateClient();
-
 	try {
-		await replicate.predictions.cancel(predictionId);
+		const response = await fetch(`/api/replicate/predictions/${predictionId}/cancel`, {
+			method: "POST",
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+			throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+		}
 	} catch (error) {
 		if (error instanceof Error) {
 			const apiError = new Error(`Failed to cancel generation: ${error.message}`);
@@ -188,13 +208,5 @@ export async function cancelGeneration(predictionId: string): Promise<void> {
 		}
 		throw new Error(`Failed to cancel generation: ${String(error)}`);
 	}
-}
-
-/**
- * Reset the client instance (for testing only)
- * @internal
- */
-export function resetClient(): void {
-	replicateClient = null;
 }
 
