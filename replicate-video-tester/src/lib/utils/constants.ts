@@ -28,6 +28,12 @@ export const MAX_POLLING_ATTEMPTS = 400;
 export const INITIAL_POLL_DELAY = 2000;
 
 /**
+ * Default video duration in seconds
+ * Used when duration parameter is not provided
+ */
+export const DEFAULT_VIDEO_DURATION = 5;
+
+/**
  * Status color mappings
  * Maps generation status to CSS color values
  */

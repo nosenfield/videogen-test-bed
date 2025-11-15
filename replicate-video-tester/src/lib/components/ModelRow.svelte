@@ -14,8 +14,9 @@
 	 */
 	import { generationsStore, addGeneration, updateGeneration } from "$lib/stores/generations";
 	import { modelsStore } from "$lib/stores/models";
-	import { setError, clearError } from "$lib/stores/ui";
+	import { setError, clearError, updateSessionCost } from "$lib/stores/ui";
 	import { initializeReplicate, generateVideo, pollGenerationStatus } from "$lib/services/replicate";
+	import { DEFAULT_VIDEO_DURATION } from "$lib/utils/constants";
 	import ModelSelector from "./ModelSelector.svelte";
 	import ParameterForm from "./ParameterForm.svelte";
 	import GenerationStatus from "./GenerationStatus.svelte";
@@ -38,7 +39,12 @@
 	let parameters = $state<Record<string, string | number | boolean>>({});
 	let isGenerating = $state(false);
 
-	// Map Replicate PredictionStatus to our GenerationStatus
+	/**
+	 * Map Replicate PredictionStatus to our GenerationStatus type.
+	 * 
+	 * @param status - Replicate API prediction status
+	 * @returns Mapped generation status for internal use
+	 */
 	function mapPredictionStatus(status: PredictionStatus): GenStatus {
 		switch (status) {
 			case "starting":
@@ -56,19 +62,40 @@
 		}
 	}
 
-	// Extract video URL from prediction output
+	/**
+	 * Type guard to check if value is a record with a string field
+	 */
+	function isRecordWithStringField(
+		obj: unknown,
+		field: string
+	): obj is Record<string, unknown> & { [key: string]: string } {
+		return (
+			typeof obj === "object" &&
+			obj !== null &&
+			field in obj &&
+			typeof (obj as Record<string, unknown>)[field] === "string"
+		);
+	}
+
+	/**
+	 * Extract video URL from prediction output.
+	 * Tries multiple common field names and formats used by different Replicate models.
+	 * 
+	 * @param output - Prediction output object (unknown type from API)
+	 * @returns Video URL string or null if not found
+	 */
 	function extractVideoUrl(output: unknown): string | null {
-		if (!output || typeof output !== "object") {
+		if (!output || typeof output !== "object" || output === null) {
 			return null;
 		}
 
 		const obj = output as Record<string, unknown>;
 		
 		// Try common video URL fields
-		if (typeof obj.video === "string") {
+		if (isRecordWithStringField(obj, "video")) {
 			return obj.video;
 		}
-		if (typeof obj.url === "string") {
+		if (isRecordWithStringField(obj, "url")) {
 			return obj.url;
 		}
 		if (Array.isArray(obj.output) && obj.output.length > 0) {
@@ -86,6 +113,32 @@
 		}
 
 		return null;
+	}
+
+	/**
+	 * Calculate cost estimate for video generation based on model pricing and parameters.
+	 * 
+	 * @param modelId - ID of the selected model
+	 * @param params - Generation parameters (uses duration if pricing is per-second)
+	 * @returns Estimated cost in USD, or null if pricing unavailable
+	 */
+	function calculateCost(modelId: string, params: Record<string, string | number | boolean>): number | null {
+		const model = $modelsStore.find((m) => m.id === modelId);
+		if (!model || !model.pricing) {
+			return null;
+		}
+
+		const baseCost = model.pricing.estimatedCost;
+		const unit = model.pricing.unit;
+
+		// If pricing is per second, multiply by duration
+		if (unit === "per second") {
+			const duration = typeof params.duration === "number" ? params.duration : DEFAULT_VIDEO_DURATION;
+			return baseCost * duration;
+		}
+
+		// Otherwise, use base cost
+		return baseCost;
 	}
 
 	// Handle model selection change
@@ -193,14 +246,21 @@
 				? new Date(finalPrediction.completed_at).getTime()
 				: Date.now();
 
+			// Calculate cost from model pricing
+			const calculatedCost = calculateCost(selectedModelId, parameters);
+
 			updateGeneration(generationId, {
 				status: mapPredictionStatus(finalPrediction.status),
 				videoUrl: finalVideoUrl,
 				error: finalPrediction.error || null,
 				endTime,
-				// TODO: Calculate actual cost from prediction metrics
-				cost: null,
+				cost: calculatedCost,
 			});
+
+			// Update session cost if generation succeeded
+			if (finalPrediction.status === "succeeded" && calculatedCost !== null) {
+				updateSessionCost(calculatedCost);
+			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			
