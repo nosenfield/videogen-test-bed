@@ -128,6 +128,68 @@ function handleChange(value: any) {
 - Prevents infinite loops from circular parent-child updates
 **Used in**: ParameterForm component (COMP-002)
 
+### Pattern 5: Consolidated State Derivation Pattern (Svelte 5)
+**When to use**: When multiple derived values depend on the same source data, or when derived values depend on other derived values
+**Implementation**:
+```typescript
+// Instead of multiple derived values creating chains:
+let generation = $derived($generationsStore.items.find(g => g.id === id));
+let displayStatus = $derived(generation?.status || "idle");
+let isActive = $derived(displayStatus === "queued" || displayStatus === "processing");
+let isComplete = $derived(displayStatus === "completed");
+let hasError = $derived(displayStatus === "error");
+
+// Use consolidated derivation:
+let generationState = $derived.by(() => {
+  const gen = $generationsStore.items.find(g => g.id === id);
+  const status = gen?.status || "idle";
+  return {
+    generation: gen || null,
+    status,
+    isActive: status === "queued" || status === "processing",
+    isComplete: status === "completed",
+    hasError: status === "error"
+  };
+});
+```
+**Key characteristics**:
+- Single `$derived.by()` computes all related state at once
+- Avoids unnecessary derivation chains
+- More efficient (one computation instead of multiple)
+- Clearer code organization
+- Direct store subscriptions with `$` prefix (never wrap derived stores in `$derived()`)
+**Used in**: ModelRow component (COMP-006)
+
+### Pattern 6: Component Orchestration Pattern
+**When to use**: When a parent component needs to coordinate multiple child components and manage complex workflows
+**Implementation**:
+```typescript
+// Orchestrator component manages workflow and coordinates children
+// - Subscribes to stores for persistence
+// - Manages local UI state
+// - Coordinates between child components
+// - Handles complete lifecycle (input → processing → output)
+let selectedModelId = $state<string>("");
+let parameters = $state<Record<string, any>>({});
+let generationState = $derived.by(() => {
+  // Consolidated state from store
+});
+
+// Render child components conditionally based on state
+{#if selectedModelId}
+  <ModelSelector value={selectedModelId} onChange={handleModelChange} />
+  <ParameterForm modelId={selectedModelId} parameters={parameters} onChange={handleParametersChange} />
+  <CostEstimator modelId={selectedModelId} parameters={parameters} />
+{/if}
+```
+**Key characteristics**:
+- Parent manages workflow state and lifecycle
+- Children are focused on specific responsibilities
+- Store subscriptions for persistence
+- Local state for UI interactions
+- Conditional rendering based on workflow stage
+**Used in**: ModelRow component (COMP-006)
+
 ---
 
 ## Key Invariants
@@ -163,6 +225,9 @@ Every API call must log its cost. Total generation cost must be tracked and repo
 - **Svelte Stores**: Manage generation state, model configurations, UI state
 - **Writable Stores**: Mutable state for generations, parameters
 - **Derived Stores**: Computed values (active generation count, session cost)
+- **Direct Store Subscriptions**: Use `$storeName` prefix for automatic reactivity in Svelte 5
+- **Consolidated State Derivation**: Use `$derived.by()` for related state to avoid derivation chains
+- **Never Double-Derive**: Don't wrap derived stores in `$derived()` - access them directly with `$` prefix
 
 ---
 
