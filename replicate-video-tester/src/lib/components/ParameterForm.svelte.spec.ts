@@ -18,9 +18,12 @@ describe("ParameterForm", () => {
 		render(ParameterForm, {
 			props: { modelId: model.id, parameters: {}, onChange },
 		});
-		// Form should render
-		const form = page.locator("form");
-		await expect.element(form).toBeInTheDocument();
+		// Form should render - find by checking for parameter inputs
+		const firstParam = model.parameters[0];
+		if (firstParam) {
+			const input = page.getByLabelText(new RegExp(firstParam.name, "i"));
+			await expect.element(input).toBeInTheDocument();
+		}
 	});
 
 	it("displays parameter inputs based on parameter type", async () => {
@@ -62,8 +65,11 @@ describe("ParameterForm", () => {
 			props: { modelId: model.id, parameters: {}, onChange },
 		});
 		// Component should render (validation errors shown on interaction)
-		const form = page.locator("form");
-		await expect.element(form).toBeInTheDocument();
+		// Check that the form renders by finding a parameter input
+		if (requiredParam) {
+			const input = page.getByLabelText(new RegExp(requiredParam.name, "i"));
+			await expect.element(input).toBeInTheDocument();
+		}
 	});
 
 	it("handles parameter defaults", async () => {
@@ -77,10 +83,14 @@ describe("ParameterForm", () => {
 			props: { modelId: model.id, parameters: {}, onChange },
 		});
 		// Component should render with defaults applied
-		const form = page.locator("form");
-		await expect.element(form).toBeInTheDocument();
+		// Check that the form renders by finding a parameter input
+		if (paramWithDefault) {
+			const input = page.getByLabelText(new RegExp(paramWithDefault.name, "i"));
+			await expect.element(input).toBeInTheDocument();
+		}
 		// onChange should NOT be called on initial mount (prevents infinite loops)
 		// It will be called on user interaction
+		expect(onChange).not.toHaveBeenCalled();
 	});
 
 	it("validates required parameters and shows errors", async () => {
@@ -99,8 +109,9 @@ describe("ParameterForm", () => {
 		});
 		// Should show validation error for required param without default
 		if (requiredParam && requiredParam.default === null) {
-			const form = page.locator("form");
-			await expect.element(form).toBeInTheDocument();
+			// Check that the form renders by finding the parameter input
+			const input = page.getByLabelText(new RegExp(requiredParam.name, "i"));
+			await expect.element(input).toBeInTheDocument();
 			// Error message should be present (validation happens on init)
 		}
 	});
