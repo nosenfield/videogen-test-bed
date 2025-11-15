@@ -10,7 +10,7 @@
 - [x] Create comprehensive task list (63 tasks)
 - [x] Chunk tasks into 13 AI-optimized chunks
 - [x] Initialize memory bank structure
-- [x] Complete all memory bank files (projectbrief, activeContext, progress, productContext, systemPatterns, techContext)
+- [x] Complete all memory bank files (projectBrief, activeContext, progress, productContext, systemPatterns, techContext)
 - [x] Chunk best-practices.md into 13 topic files
 - [x] Create task-tracker.md for progress tracking
 - [ ] Make category decision (music video vs ad creative)
