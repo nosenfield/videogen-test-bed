@@ -81,6 +81,49 @@ describe("validateParameter", () => {
 		};
 		expect(validateParameter(null, param).valid).toBe(true);
 	});
+
+	it("validates number at exact min boundary", () => {
+		const param: ModelParameter = {
+			name: "duration",
+			type: "number",
+			description: "Duration",
+			default: 5,
+			required: true,
+			min: 1,
+			max: 30,
+		};
+		expect(validateParameter(1, param).valid).toBe(true);
+	});
+
+	it("validates number at exact max boundary", () => {
+		const param: ModelParameter = {
+			name: "duration",
+			type: "number",
+			description: "Duration",
+			default: 5,
+			required: true,
+			min: 1,
+			max: 30,
+		};
+		expect(validateParameter(30, param).valid).toBe(true);
+	});
+
+	it("handles select with numeric values", () => {
+		const param: ModelParameter = {
+			name: "quality",
+			type: "select",
+			description: "Quality",
+			default: 1,
+			required: true,
+			options: [
+				{ value: 1, label: "Low" },
+				{ value: 2, label: "High" },
+			],
+		};
+		expect(validateParameter(1, param).valid).toBe(true);
+		expect(validateParameter(2, param).valid).toBe(true);
+		expect(validateParameter(3, param).valid).toBe(false);
+	});
 });
 
 describe("validateAllParameters", () => {

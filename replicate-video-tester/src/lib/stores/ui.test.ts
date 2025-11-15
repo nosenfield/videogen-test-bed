@@ -107,3 +107,59 @@ describe("updateSessionCost", () => {
 	});
 });
 
+describe("Immutability", () => {
+	beforeEach(() => {
+		uiStore.set({
+			isLoading: false,
+			globalError: null,
+			sessionCost: 0,
+			maxConcurrentGenerations: MAX_CONCURRENT_GENERATIONS,
+		});
+	});
+
+	it("setLoading does not mutate original state", () => {
+		const initialState = get(uiStore);
+		const initialIsLoading = initialState.isLoading;
+
+		setLoading(true);
+
+		// Original state should not be mutated
+		expect(initialState.isLoading).toBe(false);
+		expect(initialIsLoading).toBe(false);
+
+		// New state should be updated
+		const newState = get(uiStore);
+		expect(newState.isLoading).toBe(true);
+	});
+
+	it("setError does not mutate original state", () => {
+		const initialState = get(uiStore);
+		const initialError = initialState.globalError;
+
+		setError("Test error");
+
+		// Original state should not be mutated
+		expect(initialState.globalError).toBeNull();
+		expect(initialError).toBeNull();
+
+		// New state should have error
+		const newState = get(uiStore);
+		expect(newState.globalError).toBe("Test error");
+	});
+
+	it("updateSessionCost does not mutate original state", () => {
+		const initialState = get(uiStore);
+		const initialCost = initialState.sessionCost;
+
+		updateSessionCost(0.5);
+
+		// Original state should not be mutated
+		expect(initialState.sessionCost).toBe(0);
+		expect(initialCost).toBe(0);
+
+		// New state should be updated
+		const newState = get(uiStore);
+		expect(newState.sessionCost).toBe(0.5);
+	});
+});
+

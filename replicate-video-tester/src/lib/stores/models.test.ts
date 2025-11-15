@@ -46,3 +46,24 @@ describe("filteredModels", () => {
 	});
 });
 
+describe("Immutability", () => {
+	beforeEach(() => {
+		modelsStore.set([]);
+	});
+
+	it("loadModels does not mutate original state", () => {
+		const initialState = get(modelsStore);
+		const initialModels = [...initialState];
+
+		loadModels();
+
+		// Original state should not be mutated
+		expect(initialState).toEqual([]);
+		expect(initialModels).toEqual([]);
+
+		// New state should have models
+		const newState = get(modelsStore);
+		expect(newState.length).toBeGreaterThan(0);
+	});
+});
+

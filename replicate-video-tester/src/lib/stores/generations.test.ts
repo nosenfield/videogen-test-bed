@@ -231,3 +231,96 @@ describe("activeCount", () => {
 	});
 });
 
+describe("Immutability", () => {
+	beforeEach(() => {
+		clearAll();
+	});
+
+	it("addGeneration does not mutate original state", () => {
+		const generation: Generation = {
+			id: "gen-1",
+			modelId: "google/veo-3",
+			parameters: { prompt: "test" },
+			status: "idle",
+			videoUrl: null,
+			error: null,
+			startTime: null,
+			endTime: null,
+			cost: null,
+			predictionId: null,
+		};
+
+		const initialState = get(generationsStore);
+		const initialItems = [...initialState.items];
+
+		addGeneration(generation);
+
+		// Original state should not be mutated
+		expect(initialState.items).toEqual([]);
+		expect(initialItems).toEqual([]);
+
+		// New state should have the generation
+		const newState = get(generationsStore);
+		expect(newState.items).toHaveLength(1);
+		expect(newState.items[0]).toEqual(generation);
+	});
+
+	it("updateGeneration does not mutate original state", () => {
+		const generation: Generation = {
+			id: "gen-1",
+			modelId: "google/veo-3",
+			parameters: { prompt: "test" },
+			status: "idle",
+			videoUrl: null,
+			error: null,
+			startTime: null,
+			endTime: null,
+			cost: null,
+			predictionId: null,
+		};
+
+		addGeneration(generation);
+		const stateBeforeUpdate = get(generationsStore);
+		const itemBeforeUpdate = { ...stateBeforeUpdate.items[0] };
+
+		updateGeneration("gen-1", { status: "queued" });
+
+		// Original item should not be mutated
+		expect(itemBeforeUpdate.status).toBe("idle");
+		expect(stateBeforeUpdate.items[0].status).toBe("idle");
+
+		// New state should have updated status
+		const newState = get(generationsStore);
+		expect(newState.items[0].status).toBe("queued");
+	});
+
+	it("removeGeneration does not mutate original state", () => {
+		const generation: Generation = {
+			id: "gen-1",
+			modelId: "google/veo-3",
+			parameters: { prompt: "test" },
+			status: "idle",
+			videoUrl: null,
+			error: null,
+			startTime: null,
+			endTime: null,
+			cost: null,
+			predictionId: null,
+		};
+
+		addGeneration(generation);
+		const stateBeforeRemove = get(generationsStore);
+		const itemsBeforeRemove = [...stateBeforeRemove.items];
+
+		removeGeneration("gen-1");
+
+		// Original state should not be mutated
+		expect(itemsBeforeRemove).toHaveLength(1);
+		expect(stateBeforeRemove.items).toHaveLength(1);
+
+		// New state should be empty
+		const newState = get(generationsStore);
+		expect(newState.items).toHaveLength(0);
+	});
+});
+
