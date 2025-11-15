@@ -109,7 +109,7 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 - [x] UI-004 - VideoPlayer Component
 
 ### Feature Components
-- [ ] COMP-001 - ModelSelector Component
+- [x] COMP-001 - ModelSelector Component
 - [ ] COMP-002 - ParameterForm Component
 - [ ] COMP-003 - GenerationStatus Component
 - [ ] COMP-004 - CostEstimator Component
