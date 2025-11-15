@@ -15,8 +15,9 @@
 	import { generationsStore, addGeneration, updateGeneration } from "$lib/stores/generations";
 	import { modelsStore } from "$lib/stores/models";
 	import { setError, clearError, updateSessionCost } from "$lib/stores/ui";
-	import { initializeReplicate, generateVideo, pollGenerationStatus } from "$lib/services/replicate";
+	import { initializeReplicate, generateVideo, pollGenerationStatus, cancelGeneration } from "$lib/services/replicate";
 	import { DEFAULT_VIDEO_DURATION } from "$lib/utils/constants";
+	import { onDestroy } from "svelte";
 	import ModelSelector from "./ModelSelector.svelte";
 	import ParameterForm from "./ParameterForm.svelte";
 	import GenerationStatus from "./GenerationStatus.svelte";
@@ -38,6 +39,8 @@
 	let selectedModelId = $state<string>("");
 	let parameters = $state<Record<string, string | number | boolean>>({});
 	let isGenerating = $state(false);
+	let currentPredictionId = $state<string | null>(null);
+	let isCancelled = $state(false);
 
 	/**
 	 * Map Replicate PredictionStatus to our GenerationStatus type.
@@ -213,6 +216,17 @@
 
 			// Start video generation
 			const prediction = await generateVideo(selectedModelId, parameters);
+			currentPredictionId = prediction.id;
+
+			// Check if cancelled before continuing
+			if (isCancelled) {
+				await cancelGeneration(prediction.id);
+				updateGeneration(generationId, {
+					status: "canceled",
+					endTime: Date.now(),
+				});
+				return;
+			}
 
 			// Update with prediction ID
 			updateGeneration(generationId, {
@@ -222,6 +236,11 @@
 
 			// Poll for completion
 			const finalPrediction = await pollGenerationStatus(prediction.id, (updatedPrediction) => {
+				// Check if cancelled during polling
+				if (isCancelled) {
+					return;
+				}
+
 				// Update generation on each poll
 				const videoUrl = updatedPrediction.output
 					? extractVideoUrl(updatedPrediction.output)
@@ -236,6 +255,18 @@
 						: startTime,
 				});
 			});
+
+			// Check if cancelled after polling completes
+			if (isCancelled) {
+				if (finalPrediction.status !== "succeeded" && finalPrediction.status !== "failed") {
+					await cancelGeneration(prediction.id);
+				}
+				updateGeneration(generationId, {
+					status: "canceled",
+					endTime: Date.now(),
+				});
+				return;
+			}
 
 			// Final update on completion
 			const finalVideoUrl = finalPrediction.output
@@ -291,12 +322,8 @@
 			setError(errorMessage);
 		} finally {
 			isGenerating = false;
+			currentPredictionId = null;
 		}
-	}
-
-	// Handle remove button click
-	function handleRemove() {
-		onRemove(id);
 	}
 
 	// Consolidated generation state (avoids unnecessary derivation chains)
@@ -310,6 +337,43 @@
 			isComplete: status === "completed",
 			hasError: status === "error",
 		};
+	});
+
+	// Handle remove button click
+	async function handleRemove() {
+		// Cancel ongoing generation if active
+		if (currentPredictionId && (isGenerating || generationState.isActive)) {
+			try {
+				isCancelled = true;
+				await cancelGeneration(currentPredictionId);
+				updateGeneration(id, {
+					status: "canceled",
+					endTime: Date.now(),
+				});
+			} catch (error) {
+				// Log error but continue with removal
+				console.error("Failed to cancel generation:", error);
+			}
+		}
+		onRemove(id);
+	}
+
+	// Cleanup on component destroy
+	onDestroy(() => {
+		// Cancel ongoing generation if component is destroyed while generating
+		if (currentPredictionId && (isGenerating || generationState.isActive)) {
+			cancelGeneration(currentPredictionId)
+				.then(() => {
+					updateGeneration(id, {
+						status: "canceled",
+						endTime: Date.now(),
+					});
+				})
+				.catch((error) => {
+					// Log error but continue with cleanup
+					console.error("Failed to cancel generation on destroy:", error);
+				});
+		}
 	});
 </script>
 

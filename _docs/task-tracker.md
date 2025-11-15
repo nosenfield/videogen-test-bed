@@ -19,7 +19,7 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Progress Summary
 
-**Overall:** 39/63 tasks complete (61.9%)
+**Overall:** 40/63 tasks complete (63.5%)
 
 **By Phase:**
 - Phase 0 (Documentation): 6/7 (85.7%)
@@ -134,11 +134,11 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Phase 5: Integration & Workflows
 
-**Progress:** 1/3 (33.3%)
+**Progress:** 2/3 (66.7%)
 **Reference:** [task-list/08-integration.md](./task-list/08-integration.md)
 
 - [x] INT-001 - Generation Workflow Integration
-- [ ] INT-002 - Multi-Row State Management
+- [x] INT-002 - Multi-Row State Management
 - [ ] INT-003 - Error Recovery
 
 ---
