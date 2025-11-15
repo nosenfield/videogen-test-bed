@@ -17,6 +17,7 @@
 	import { setError, clearError, updateSessionCost } from "$lib/stores/ui";
 	import { initializeReplicate, generateVideo, pollGenerationStatus, cancelGeneration } from "$lib/services/replicate";
 	import { DEFAULT_VIDEO_DURATION } from "$lib/utils/constants";
+	import { formatErrorMessage } from "$lib/utils/formatting";
 	import { onDestroy } from "svelte";
 	import ModelSelector from "./ModelSelector.svelte";
 	import ParameterForm from "./ParameterForm.svelte";
@@ -293,7 +294,7 @@
 				updateSessionCost(calculatedCost);
 			}
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorMessage = formatErrorMessage(error);
 			
 			// Update or create generation with error
 			const currentGen = $generationsStore.items.find((g) => g.id === id);
@@ -426,13 +427,22 @@
 			</div>
 		{/if}
 
-		<!-- Error Display -->
+		<!-- Error Display with Retry -->
 		{#if generationState.generation && generationState.hasError && generationState.generation.error}
 			<div class="section">
 				<ErrorDisplay
 					error={generationState.generation.error}
 					onDismiss={() => updateGeneration(id, { error: null })}
 				/>
+				<div class="retry-section">
+					<Button
+						label="Retry"
+						onClick={handleGenerate}
+						disabled={isGenerating || generationState.isActive || !selectedModelId}
+						variant="primary"
+						size="sm"
+					/>
+				</div>
 			</div>
 		{/if}
 
@@ -495,6 +505,12 @@
 
 	.video-section {
 		margin-top: 1rem;
+	}
+
+	.retry-section {
+		margin-top: 0.75rem;
+		display: flex;
+		justify-content: flex-end;
 	}
 </style>
 
