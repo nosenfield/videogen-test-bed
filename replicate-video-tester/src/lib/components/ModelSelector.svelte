@@ -1,10 +1,26 @@
 <script lang="ts">
+	/**
+	 * ModelSelector Component
+	 * 
+	 * Dropdown component for selecting video generation models.
+	 * Reactively loads and displays available models from the models store.
+	 * Uses template {@const} blocks for automatic reactivity.
+	 * 
+	 * @component
+	 * @example
+	 * <ModelSelector
+	 *   value="google/veo-3"
+	 *   onChange={(modelId) => console.log('Selected:', modelId)}
+	 * />
+	 */
 	import { modelsStore } from "$lib/stores/models";
 	import Select from "$lib/components/ui/Select.svelte";
 	import type { Model } from "$lib/types/models";
 
 	interface Props {
+		/** Currently selected model ID */
 		value: string;
+		/** Callback when model selection changes */
 		onChange: (value: string) => void;
 	}
 

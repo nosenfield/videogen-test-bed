@@ -1,13 +1,33 @@
 <script lang="ts">
+	/**
+	 * VideoPlayer Component
+	 * 
+	 * Video player with controls, metadata display, and security features.
+	 * Supports play/pause, volume control, fullscreen, and download.
+	 * Includes lazy loading and skeleton loader for better performance.
+	 * 
+	 * @component
+	 * @example
+	 * <VideoPlayer
+	 *   videoUrl="https://example.com/video.mp4"
+	 *   metadata={{model: "google/veo-3", duration: 5, cost: 0.75}}
+	 * />
+	 */
 	interface VideoMetadata {
+		/** Model used to generate the video */
 		model?: string;
+		/** Video duration in seconds */
 		duration?: number;
+		/** Generation cost in USD */
 		cost?: number;
+		/** Creation timestamp */
 		createdAt?: string;
 	}
 
 	interface Props {
+		/** URL of the video to play */
 		videoUrl: string;
+		/** Optional metadata to display on hover */
 		metadata?: VideoMetadata;
 	}
 

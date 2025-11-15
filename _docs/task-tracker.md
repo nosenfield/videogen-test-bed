@@ -19,7 +19,7 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Progress Summary
 
-**Overall:** 48/63 tasks complete (76.2%)
+**Overall:** 50/63 tasks complete (79.4%)
 
 **By Phase:**
 - Phase 0 (Documentation): 6/7 (85.7%)
@@ -168,11 +168,11 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Phase 8: Documentation
 
-**Progress:** 0/3 (0%)
+**Progress:** 2/3 (67%)
 **Reference:** [task-list/11-documentation.md](./task-list/11-documentation.md)
 
-- [ ] DOC-001 - README Creation
-- [ ] DOC-002 - Code Documentation
+- [x] DOC-001 - README Creation
+- [x] DOC-002 - Code Documentation
 - [ ] DOC-003 - API Documentation
 
 ---

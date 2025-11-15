@@ -1,16 +1,38 @@
 <script lang="ts">
+	/**
+	 * Select Component
+	 * 
+	 * Dropdown select component with options, placeholder, and accessibility support.
+	 * Generates unique IDs automatically if not provided.
+	 * 
+	 * @component
+	 * @example
+	 * <Select
+	 *   value={selected}
+	 *   onChange={(val) => selected = val}
+	 *   options={[{value: "1", label: "Option 1"}]}
+	 *   label="Choose option"
+	 * />
+	 */
 	interface SelectOption {
 		value: string;
 		label: string;
 	}
 
 	interface Props {
+		/** Currently selected value */
 		value: string;
+		/** Change handler */
 		onChange: (value: string) => void;
+		/** Array of select options */
 		options: SelectOption[];
+		/** Whether select is disabled */
 		disabled?: boolean;
+		/** Placeholder text */
 		placeholder?: string;
+		/** Label text */
 		label?: string;
+		/** Optional custom ID (auto-generated if not provided) */
 		id?: string;
 	}
 

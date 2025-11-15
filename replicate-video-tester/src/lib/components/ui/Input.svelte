@@ -1,12 +1,36 @@
 <script lang="ts">
+	/**
+	 * Input Component
+	 * 
+	 * Text input component with validation, error display, and accessibility support.
+	 * Generates unique IDs automatically if not provided.
+	 * 
+	 * @component
+	 * @example
+	 * <Input
+	 *   value={text}
+	 *   onChange={(val) => text = val}
+	 *   label="Name"
+	 *   placeholder="Enter your name"
+	 *   error={errors.name}
+	 * />
+	 */
 	interface Props {
+		/** Input value (controlled) */
 		value: string;
+		/** Change handler */
 		onChange: (value: string) => void;
+		/** Input type */
 		type?: "text" | "number" | "password" | "email" | "url";
+		/** Placeholder text */
 		placeholder?: string;
+		/** Whether input is disabled */
 		disabled?: boolean;
+		/** Error message to display */
 		error?: string;
+		/** Label text */
 		label?: string;
+		/** Optional custom ID (auto-generated if not provided) */
 		id?: string;
 	}
 

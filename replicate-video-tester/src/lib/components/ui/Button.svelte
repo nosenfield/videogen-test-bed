@@ -1,10 +1,31 @@
 <script lang="ts">
+	/**
+	 * Button Component
+	 * 
+	 * Reusable button component with variants, sizes, and icon support.
+	 * Fully accessible with keyboard navigation (Enter/Space keys).
+	 * 
+	 * @component
+	 * @example
+	 * <Button
+	 *   label="Click me"
+	 *   onClick={() => console.log('clicked')}
+	 *   variant="primary"
+	 *   size="md"
+	 * />
+	 */
 	interface Props {
+		/** Button label text */
 		label: string;
+		/** Click handler function */
 		onClick?: () => void;
+		/** Whether button is disabled */
 		disabled?: boolean;
+		/** Visual variant (primary, secondary, danger) */
 		variant?: "primary" | "secondary" | "danger";
+		/** Button size (sm, md, lg) */
 		size?: "sm" | "md" | "lg";
+		/** Optional icon to display before label */
 		icon?: string;
 	}
 
