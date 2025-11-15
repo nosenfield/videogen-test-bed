@@ -35,6 +35,14 @@
 		return () => clearTimeout(timer);
 	});
 
+	// Handle Escape key to dismiss
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === "Escape" && onDismiss) {
+			event.preventDefault();
+			onDismiss();
+		}
+	}
+
 	// Get severity styling
 	let severityClass = $derived(`error-${severity}`);
 	let severityColor = $derived.by(() => {
@@ -58,7 +66,14 @@
 </script>
 
 {#if error}
-	<div class="error-display {severityClass}" style="--severity-color: {severityColor}" role="alert">
+	<div
+		class="error-display {severityClass}"
+		style="--severity-color: {severityColor}"
+		role="alert"
+		tabindex="0"
+		onkeydown={handleKeydown}
+		aria-label="Error message. Press Escape to dismiss."
+	>
 		<div class="error-content">
 			<span class="error-icon" aria-hidden="true">⚠</span>
 			<span class="error-message">{error}</span>
@@ -89,6 +104,12 @@
 		color: var(--text, #374151);
 		font-size: 0.875rem;
 		line-height: 1.5;
+		outline: none;
+	}
+
+	.error-display:focus {
+		outline: 2px solid var(--severity-color);
+		outline-offset: 2px;
 	}
 
 	.error-content {

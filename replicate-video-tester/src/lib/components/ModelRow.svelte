@@ -359,6 +359,25 @@
 		onRemove(id);
 	}
 
+	// Handle keyboard shortcuts
+	function handleKeydown(event: KeyboardEvent) {
+		// Enter key to generate (when form input/select is focused and button is enabled)
+		if (event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+			const target = event.target as HTMLElement;
+			// Only trigger if focus is within this row's form elements (input, select)
+			if (
+				(target.tagName === "INPUT" || target.tagName === "SELECT") &&
+				target.closest(`[data-row-id="${id}"]`) &&
+				!isGenerating &&
+				!generationState.isActive &&
+				selectedModelId
+			) {
+				event.preventDefault();
+				handleGenerate();
+			}
+		}
+	}
+
 	// Cleanup on component destroy
 	onDestroy(() => {
 		// Cancel ongoing generation if component is destroyed while generating
@@ -378,7 +397,7 @@
 	});
 </script>
 
-<div class="model-row">
+<div class="model-row" data-row-id={id} onkeydown={handleKeydown}>
 	<div class="row-header">
 		<h3 class="row-title">Model Test #{id}</h3>
 		<Button label="Remove" onClick={handleRemove} variant="danger" size="sm" />
