@@ -44,10 +44,21 @@ See [_docs/task-list/01-foundation.md](../_docs/task-list/01-foundation.md)
   - STORE-002: Models store with loadModels action
   - STORE-003: UI state store for loading, errors, and session cost tracking
 
-### Phase 3: Features & Pages (9 tasks) - NOT STARTED
-- [ ] Feature Components (5 tasks) - See [05-feature-components.md](../_docs/task-list/05-feature-components.md)
-- [ ] Model Row Component (1 task) - See [06-model-row.md](../_docs/task-list/06-model-row.md)
-- [ ] Pages (3 tasks) - See [07-pages.md](../_docs/task-list/07-pages.md)
+### Phase 3: Base & Feature UI Components (9 tasks) - COMPLETE ✅
+- [x] Base UI Components (4 tasks) - See [04-base-ui-components.md](../_docs/task-list/04-base-ui-components.md)
+  - UI-001: Button Component with variants, sizes, icons, accessibility
+  - UI-002: Input Component with validation, error display, unique IDs
+  - UI-003: Select Component with options, placeholder, accessibility
+  - UI-004: VideoPlayer Component with controls, metadata, download, security (URL validation)
+- [x] Feature Components (5 tasks) - See [05-feature-components.md](../_docs/task-list/05-feature-components.md)
+  - COMP-001: ModelSelector Component (Svelte 5 runes, modelsStore integration)
+  - COMP-002: ParameterForm Component (uncontrolled pattern, 12 review cycles)
+  - COMP-003: GenerationStatus Component (status badge, elapsed time, spinner)
+  - COMP-004: CostEstimator Component (cost calculation, range, breakdown)
+  - COMP-005: ErrorDisplay Component (severity levels, dismiss, auto-dismiss)
+- All components use Svelte 5 runes ($props, $state, $derived, $effect)
+- All components include browser tests with vitest-browser-svelte
+- All tests passing
 
 ### Phase 4: Integration & Polish (7 tasks) - NOT STARTED
 - [ ] Workflows (3 tasks) - See [08-integration.md](../_docs/task-list/08-integration.md)
@@ -82,23 +93,24 @@ See [_docs/task-list/13-final-steps.md](../_docs/task-list/13-final-steps.md)
 ## What's Next
 
 ### Priority 1 (Immediate - Next Session)
-- [ ] Begin Phase 3: Base UI Components
-  - Button, Input, Select, VideoPlayer components
-  - Follow Svelte 5 runes patterns
-  - Use plain CSS styling
-- [ ] Begin Feature Components
-  - ModelSelector, ParameterForm, GenerationStatus, etc.
+- [ ] Begin Phase 4: ModelRow Component (COMP-006)
+  - Integrate ModelSelector, ParameterForm, GenerationStatus, CostEstimator, ErrorDisplay
+  - Handle generation workflow (start, poll, cancel)
+  - Display video results with VideoPlayer
+  - Manage generation state per row
 
 ### Priority 2 (This Week)
-- [ ] Complete API Integration phase
-- [ ] Complete State Management
-- [ ] Begin Base UI Components
+- [ ] Complete Phase 4: Pages (PAGE-001 through PAGE-003)
+  - Root layout with global styles
+  - Main application page with multiple ModelRow components
+  - Error page for route errors
 - [ ] Make category decision (music video vs ad creative) - still pending
 
 ### Priority 3 (Next Week)
-- [ ] Complete UI Components phase
-- [ ] Implement ModelRow component
-- [ ] Create application pages
+- [ ] Begin Phase 5: Integration & Workflows
+  - Generation workflow integration
+  - Multi-row state management
+  - Error recovery patterns
 
 ---
 

@@ -98,6 +98,36 @@ function selectModel(requirements: Requirements): ModelConfig
 - Reuse clips across multiple videos with similar scenes
 - Store model schemas to avoid repeated fetches
 
+### Pattern 4: Uncontrolled Component Pattern (Svelte)
+**When to use**: For complex form components where parent doesn't need to manage every keystroke, or when circular parent-child updates would cause infinite loops
+**Implementation**:
+```typescript
+// Component manages its own state after initial props
+let localParams = $state<Record<string, any>>({});
+
+// Initialize from props only on first mount
+$effect(() => {
+  if (!isInitialized && parameters) {
+    localParams = { ...parameters };
+    isInitialized = true;
+  }
+});
+
+// Parent receives updates via callback
+function handleChange(value: any) {
+  localParams = { ...localParams, ...value };
+  onChange(localParams); // Notify parent
+}
+```
+**Key characteristics**:
+- Component owns its state after initialization
+- Parent provides initial values via props (first mount only)
+- Parent receives updates via `onChange` callback
+- Parent should NOT update props after mount (changes are ignored)
+- Component re-initializes only when key prop changes (e.g., `modelId`)
+- Prevents infinite loops from circular parent-child updates
+**Used in**: ParameterForm component (COMP-002)
+
 ---
 
 ## Key Invariants
