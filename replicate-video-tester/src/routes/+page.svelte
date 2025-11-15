@@ -7,14 +7,13 @@
 	 */
 	import { generationsStore, clearAll, activeCount, removeGeneration } from "$lib/stores/generations";
 	import { loadModels } from "$lib/stores/models";
-	import { uiStore } from "$lib/stores/ui";
-	import { MAX_CONCURRENT_GENERATIONS } from "$lib/utils/constants";
+	import { uiStore, setError } from "$lib/stores/ui";
 	import ModelRow from "$lib/components/ModelRow.svelte";
 	import Button from "$lib/components/ui/Button.svelte";
 	import { onMount } from "svelte";
 
 	// Subscribe to stores (direct subscriptions for reactivity)
-	let activeGenCount = $derived($activeCount);
+	// activeCount is already a derived store, access it directly via $activeCount
 
 	// Local state for row management
 	let rowIds = $state<string[]>([]);
@@ -22,7 +21,13 @@
 
 	// Load models on mount
 	onMount(() => {
-		loadModels();
+		try {
+			loadModels();
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : "Failed to load models";
+			setError(errorMessage);
+		}
 	});
 
 	// Generate unique row ID
@@ -54,17 +59,24 @@
 		}
 	}
 
-	// Check if we can add more rows (based on concurrent limit)
-	// Allow adding rows if under concurrent limit OR if no rows exist yet (initial state)
-	// But once rows exist, enforce the concurrent limit strictly
+	/**
+	 * Check if we can add more rows (based on concurrent generation limit).
+	 * 
+	 * Business logic:
+	 * - Always allow the first row (initial state, no active generations yet)
+	 * - For subsequent rows, only allow if current active generation count is below the limit
+	 * - This limits concurrent ACTIVE generations, not total rows
+	 * - Users can have multiple rows, but only N can be generating simultaneously
+	 */
 	let canAddRow = $derived.by(() => {
 		const maxConcurrent = $uiStore.maxConcurrentGenerations;
-		// Always allow first row
+		// Always allow first row (no active generations yet)
 		if (rowIds.length === 0) {
 			return true;
 		}
-		// For subsequent rows, check concurrent limit
-		return activeGenCount < maxConcurrent;
+		// For subsequent rows, enforce concurrent generation limit
+		// This prevents starting new generations when limit is reached
+		return $activeCount < maxConcurrent;
 	});
 
 	// Format session cost
@@ -77,7 +89,7 @@
 			<h2>Video Model Testing</h2>
 			<p class="instructions">
 				Add model rows to test and compare different video generation models. Each row allows you to
-				select a model, configure parameters, and generate videos. You can run up to{" "}
+				select a model, configure parameters, and generate videos. You can run up to
 				{$uiStore.maxConcurrentGenerations} generations simultaneously.
 			</p>
 		</div>
@@ -85,7 +97,7 @@
 			<div class="session-info">
 				<span class="session-cost">Session Cost: {formattedCost}</span>
 				<span class="active-count">
-					Active: {activeGenCount} / {$uiStore.maxConcurrentGenerations}
+					Active: {$activeCount} / {$uiStore.maxConcurrentGenerations}
 				</span>
 			</div>
 			<Button
@@ -115,7 +127,9 @@
 	{#if !canAddRow && rowIds.length > 0}
 		<div class="limit-warning" role="alert">
 			<p>
-				⚠️ Maximum concurrent generations reached ({activeGenCount}/
+				<span aria-hidden="true">⚠️</span>
+				<span class="sr-only">Warning:</span>
+				Maximum concurrent generations reached ({$activeCount}/
 				{$uiStore.maxConcurrentGenerations}). Complete or cancel existing generations before adding
 				more rows.
 			</p>
@@ -202,5 +216,17 @@
 	.limit-warning p {
 		margin: 0;
 		font-size: 0.875rem;
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
 	}
 </style>
