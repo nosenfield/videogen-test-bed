@@ -149,6 +149,8 @@
 				src={videoUrl}
 				class="video"
 				controls={false}
+				loading="lazy"
+				preload="metadata"
 				onloadstart={handleLoadStart}
 				onloadeddata={handleLoadedData}
 				onerror={handleError}

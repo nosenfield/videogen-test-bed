@@ -31,6 +31,7 @@
 	import Input from "$lib/components/ui/Input.svelte";
 	import Select from "$lib/components/ui/Select.svelte";
 	import { validateParameter } from "$lib/utils/validation";
+	import { debounce } from "$lib/utils/performance";
 	import type { ModelParameter } from "$lib/types/models";
 
 	interface Props {
@@ -122,12 +123,18 @@
 		errors = newErrors;
 	}
 
+	// Debounced onChange callback to reduce parent updates
+	// Only debounce the parent notification, not local state updates
+	const debouncedOnChange = debounce((params: Record<string, string | number | boolean>) => {
+		onChange(params);
+	}, 300);
+
 	// Handle parameter value change
 	function handleParameterChange(paramName: string, value: string | number | boolean) {
-		// Update local state immutably
+		// Update local state immutably (immediate for UI responsiveness)
 		localParams = { ...localParams, [paramName]: value };
 
-		// Validate in real-time
+		// Validate in real-time (immediate for user feedback)
 		if (currentModel) {
 			const param = currentModel.parameters.find((p) => p.name === paramName);
 			if (param) {
@@ -143,8 +150,8 @@
 			}
 		}
 		
-		// Notify parent of change with updated params
-		onChange({ ...localParams });
+		// Notify parent of change with debounced callback (reduces unnecessary updates)
+		debouncedOnChange({ ...localParams });
 	}
 
 	// Get parameter value for display
