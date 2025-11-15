@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # AUTO_ACCEPT VALIDATION & LOGGING
 # ============================================================================
 
-VIOLATION_LOG="_logs/commit-violations.log"
+VIOLATION_LOG="_logs/commit-bypasses.log"
 SESSION_FILE=".git/hooks/commit-session.json"
 
 # Ensure logs directory exists
@@ -149,6 +149,9 @@ if [ "$AUTO_ACCEPT" = "true" ]; then
     # Clean up session file (commit successful)
     rm -f "$SESSION_FILE"
 
+    # Mark that pre-commit hook ran (for post-commit detection)
+    touch _logs/.pre-commit-ran
+
     # Allow commit
     exit 0
 fi
@@ -176,6 +179,7 @@ ESSENTIAL_CONTEXT=(
     "./_docs/architecture.md"
     "./_docs/best-practices.md"
     "./.cursor/rules/base.mdc"
+    "./memory-bank/projectbrief.md"
 )
 
 # Conditional context files (include if relevant)
@@ -194,6 +198,17 @@ for file in "${ESSENTIAL_CONTEXT[@]}"; do
 - $file"
     fi
 done
+
+# Add instruction to follow best-practices links
+CONTEXT_PROMPT="${CONTEXT_PROMPT}
+
+**IMPORTANT - Best Practices Context:**
+After reading ./_docs/best-practices.md, if it contains relative links to chunked
+best practice documents (e.g., ./best-practices/chunk-name.md), you MUST read
+each linked file that is relevant to the technologies in the staged files.
+
+These chunked documents contain technology-specific best practices that are
+critical for reviewing the code correctly."
 
 # Add conditional context
 CONTEXT_PROMPT="${CONTEXT_PROMPT}
@@ -357,6 +372,8 @@ case "$response" in
         case "$response2" in
             [yY])
                 echo -e "${GREEN}✓ Proceeding with commit...${NC}"
+                # Mark that pre-commit hook ran (for post-commit detection)
+                touch _logs/.pre-commit-ran
                 exit 0
                 ;;
             *)
@@ -367,6 +384,8 @@ case "$response" in
         ;;
     [yY])
         echo -e "${GREEN}✓ Proceeding with commit...${NC}"
+        # Mark that pre-commit hook ran (for post-commit detection)
+        touch _logs/.pre-commit-ran
         exit 0
         ;;
     *)
