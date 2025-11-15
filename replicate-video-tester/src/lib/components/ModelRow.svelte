@@ -512,5 +512,40 @@
 		display: flex;
 		justify-content: flex-end;
 	}
+
+	@media (max-width: 768px) {
+		.model-row {
+			padding: 1rem;
+		}
+
+		.row-header {
+			margin-bottom: 1rem;
+			padding-bottom: 0.75rem;
+		}
+
+		.row-title {
+			font-size: 1rem;
+		}
+
+		.generate-section {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.75rem;
+		}
+
+		.cost-estimator-wrapper {
+			flex: none;
+		}
+	}
+
+	@media (max-width: 375px) {
+		.model-row {
+			padding: 0.75rem;
+		}
+
+		.row-title {
+			font-size: 0.9375rem;
+		}
+	}
 </style>
 

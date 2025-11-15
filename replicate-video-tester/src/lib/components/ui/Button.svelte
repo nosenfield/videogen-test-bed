@@ -107,16 +107,38 @@
 	.button.sm {
 		padding: 0.375rem 0.75rem;
 		font-size: 0.75rem;
+		min-height: 36px;
+		min-width: 36px;
 	}
 
 	.button.md {
 		padding: 0.5rem 1rem;
 		font-size: 0.875rem;
+		min-height: 44px;
+		min-width: 44px;
 	}
 
 	.button.lg {
 		padding: 0.75rem 1.5rem;
 		font-size: 1rem;
+		min-height: 48px;
+		min-width: 48px;
+	}
+
+	/* Touch-friendly on mobile */
+	@media (max-width: 768px) {
+		.button.sm {
+			min-height: 44px;
+			padding: 0.5rem 0.875rem;
+		}
+
+		.button.md {
+			padding: 0.625rem 1.25rem;
+		}
+
+		.button.lg {
+			padding: 0.875rem 1.75rem;
+		}
 	}
 
 	.icon {

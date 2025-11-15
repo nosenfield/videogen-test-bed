@@ -182,6 +182,43 @@
 		color: var(--text, #1f2937);
 	}
 
+	@media (max-width: 768px) {
+		.page-header {
+			margin-bottom: 1.5rem;
+			padding-bottom: 1rem;
+		}
+
+		.page-header h2 {
+			font-size: 1.25rem;
+		}
+
+		.instructions {
+			font-size: 0.8125rem;
+		}
+
+		.header-actions {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.75rem;
+		}
+
+		.session-info {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+		}
+	}
+
+	@media (max-width: 375px) {
+		.page-header h2 {
+			font-size: 1.125rem;
+		}
+
+		.instructions {
+			font-size: 0.75rem;
+		}
+	}
+
 	.session-cost {
 		font-weight: 500;
 	}

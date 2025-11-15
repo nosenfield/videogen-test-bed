@@ -175,6 +175,12 @@
 		margin: 0 auto;
 	}
 
+	@media (max-width: 768px) {
+		.video-player {
+			max-width: 100%;
+		}
+	}
+
 	.video-container {
 		position: relative;
 		width: 100%;
@@ -249,6 +255,20 @@
 		cursor: pointer;
 		font-size: 1rem;
 		transition: opacity 0.2s;
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	@media (max-width: 768px) {
+		.control-button {
+			padding: 0.75rem 1.25rem;
+			font-size: 0.9375rem;
+		}
+
+		.controls {
+			flex-wrap: wrap;
+			gap: 0.75rem;
+		}
 	}
 
 	.control-button:hover {
