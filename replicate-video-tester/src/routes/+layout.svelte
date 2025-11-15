@@ -48,7 +48,7 @@
 
 		<!-- Page Content -->
 		<div class="page-content">
-			{@render children()}
+{@render children()}
 		</div>
 	</main>
 
