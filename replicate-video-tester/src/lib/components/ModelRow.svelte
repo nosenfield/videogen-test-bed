@@ -1,0 +1,376 @@
+<script lang="ts">
+	/**
+	 * ModelRow Component
+	 * 
+	 * Main orchestrator component for a single model test instance.
+	 * Integrates all feature components and manages the complete generation workflow.
+	 * 
+	 * @component
+	 * @example
+	 * <ModelRow
+	 *   id="row-1"
+	 *   onRemove={(id) => console.log('Remove row', id)}
+	 * />
+	 */
+	import { generationsStore, addGeneration, updateGeneration } from "$lib/stores/generations";
+	import { modelsStore } from "$lib/stores/models";
+	import { setError, clearError } from "$lib/stores/ui";
+	import { initializeReplicate, generateVideo, pollGenerationStatus } from "$lib/services/replicate";
+	import ModelSelector from "./ModelSelector.svelte";
+	import ParameterForm from "./ParameterForm.svelte";
+	import GenerationStatus from "./GenerationStatus.svelte";
+	import CostEstimator from "./CostEstimator.svelte";
+	import ErrorDisplay from "./ErrorDisplay.svelte";
+	import VideoPlayer from "./ui/VideoPlayer.svelte";
+	import Button from "./ui/Button.svelte";
+	import type { GenerationStatus as GenStatus } from "$lib/types/generation";
+	import type { PredictionStatus } from "$lib/types/replicate";
+
+	interface Props {
+		id: string;
+		onRemove: (id: string) => void;
+	}
+
+	let { id, onRemove }: Props = $props();
+
+	// Local state for UI interactions
+	let selectedModelId = $state<string>("");
+	let parameters = $state<Record<string, string | number | boolean>>({});
+	let isGenerating = $state(false);
+
+	// Map Replicate PredictionStatus to our GenerationStatus
+	function mapPredictionStatus(status: PredictionStatus): GenStatus {
+		switch (status) {
+			case "starting":
+				return "queued";
+			case "processing":
+				return "processing";
+			case "succeeded":
+				return "completed";
+			case "failed":
+				return "error";
+			case "canceled":
+				return "canceled";
+			default:
+				return "idle";
+		}
+	}
+
+	// Extract video URL from prediction output
+	function extractVideoUrl(output: unknown): string | null {
+		if (!output || typeof output !== "object") {
+			return null;
+		}
+
+		const obj = output as Record<string, unknown>;
+		
+		// Try common video URL fields
+		if (typeof obj.video === "string") {
+			return obj.video;
+		}
+		if (typeof obj.url === "string") {
+			return obj.url;
+		}
+		if (Array.isArray(obj.output) && obj.output.length > 0) {
+			const first = obj.output[0];
+			if (typeof first === "string") {
+				return first;
+			}
+		}
+		
+		// Try to find any string value that looks like a URL
+		for (const value of Object.values(obj)) {
+			if (typeof value === "string" && (value.startsWith("http://") || value.startsWith("https://"))) {
+				return value;
+			}
+		}
+
+		return null;
+	}
+
+	// Handle model selection change
+	function handleModelChange(modelId: string) {
+		selectedModelId = modelId;
+		// Reset parameters when model changes
+		parameters = {};
+	}
+
+	// Handle parameter changes from ParameterForm
+	function handleParametersChange(newParams: Record<string, string | number | boolean>) {
+		parameters = newParams;
+	}
+
+	// Handle generate button click
+	async function handleGenerate() {
+		if (!selectedModelId) {
+			setError("Please select a model");
+			return;
+		}
+
+		// Validate required parameters
+		const model = $modelsStore.find((m) => m.id === selectedModelId);
+		if (!model) {
+			setError("Selected model not found");
+			return;
+		}
+
+		// Check for required parameters without defaults
+		const missingRequired = model.parameters
+			.filter((p) => p.required && p.default === null)
+			.filter((p) => !(p.name in parameters) || parameters[p.name] === "" || parameters[p.name] === null);
+
+		if (missingRequired.length > 0) {
+			setError(`Missing required parameters: ${missingRequired.map((p) => p.name).join(", ")}`);
+			return;
+		}
+
+		try {
+			// Initialize Replicate client
+			try {
+				initializeReplicate();
+			} catch (err) {
+				// If initialization fails, provide clear error message
+				const errorMessage =
+					err instanceof Error
+						? err.message
+						: "Failed to initialize Replicate client. Please check your API key configuration.";
+				setError(errorMessage);
+				return;
+			}
+
+			clearError();
+			isGenerating = true;
+
+			// Create initial generation entry
+			const generationId = id;
+			const startTime = Date.now();
+			
+			addGeneration({
+				id: generationId,
+				modelId: selectedModelId,
+				parameters: { ...parameters },
+				status: "queued",
+				videoUrl: null,
+				error: null,
+				startTime,
+				endTime: null,
+				cost: null,
+				predictionId: null,
+			});
+
+			// Start video generation
+			const prediction = await generateVideo(selectedModelId, parameters);
+
+			// Update with prediction ID
+			updateGeneration(generationId, {
+				predictionId: prediction.id,
+				status: mapPredictionStatus(prediction.status),
+			});
+
+			// Poll for completion
+			const finalPrediction = await pollGenerationStatus(prediction.id, (updatedPrediction) => {
+				// Update generation on each poll
+				const videoUrl = updatedPrediction.output
+					? extractVideoUrl(updatedPrediction.output)
+					: null;
+
+				updateGeneration(generationId, {
+					status: mapPredictionStatus(updatedPrediction.status),
+					videoUrl,
+					error: updatedPrediction.error || null,
+					startTime: updatedPrediction.started_at
+						? new Date(updatedPrediction.started_at).getTime()
+						: startTime,
+				});
+			});
+
+			// Final update on completion
+			const finalVideoUrl = finalPrediction.output
+				? extractVideoUrl(finalPrediction.output)
+				: null;
+
+			const endTime = finalPrediction.completed_at
+				? new Date(finalPrediction.completed_at).getTime()
+				: Date.now();
+
+			updateGeneration(generationId, {
+				status: mapPredictionStatus(finalPrediction.status),
+				videoUrl: finalVideoUrl,
+				error: finalPrediction.error || null,
+				endTime,
+				// TODO: Calculate actual cost from prediction metrics
+				cost: null,
+			});
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			
+			// Update or create generation with error
+			const currentGen = $generationsStore.items.find((g) => g.id === id);
+			if (currentGen) {
+				updateGeneration(id, {
+					status: "error",
+					error: errorMessage,
+					endTime: Date.now(),
+				});
+			} else {
+				// If generation wasn't created, add it with error
+				addGeneration({
+					id,
+					modelId: selectedModelId,
+					parameters: { ...parameters },
+					status: "error",
+					videoUrl: null,
+					error: errorMessage,
+					startTime: Date.now(),
+					endTime: Date.now(),
+					cost: null,
+					predictionId: null,
+				});
+			}
+
+			setError(errorMessage);
+		} finally {
+			isGenerating = false;
+		}
+	}
+
+	// Handle remove button click
+	function handleRemove() {
+		onRemove(id);
+	}
+
+	// Consolidated generation state (avoids unnecessary derivation chains)
+	let generationState = $derived.by(() => {
+		const gen = $generationsStore.items.find((g) => g.id === id);
+		const status = gen?.status || ("idle" as GenStatus);
+		return {
+			generation: gen || null,
+			status,
+			isActive: status === "queued" || status === "processing",
+			isComplete: status === "completed",
+			hasError: status === "error",
+		};
+	});
+</script>
+
+<div class="model-row">
+	<div class="row-header">
+		<h3 class="row-title">Model Test #{id}</h3>
+		<Button label="Remove" onClick={handleRemove} variant="danger" size="sm" />
+	</div>
+
+	<div class="row-content">
+		<!-- Model Selection -->
+		<div class="section">
+			<ModelSelector value={selectedModelId} onChange={handleModelChange} />
+		</div>
+
+		<!-- Parameter Form -->
+		{#if selectedModelId}
+			<div class="section">
+				<ParameterForm
+					modelId={selectedModelId}
+					parameters={parameters}
+					onChange={handleParametersChange}
+				/>
+			</div>
+		{/if}
+
+		<!-- Generate Button with Cost Estimator -->
+		{#if selectedModelId}
+			<div class="section generate-section">
+				<div class="cost-estimator-wrapper">
+					<CostEstimator modelId={selectedModelId} parameters={parameters} />
+				</div>
+				<Button
+					label={isGenerating ? "Generating..." : "Generate"}
+					onClick={handleGenerate}
+					disabled={isGenerating || generationState.isActive || !selectedModelId}
+					variant="primary"
+				/>
+			</div>
+		{/if}
+
+		<!-- Generation Status -->
+		{#if generationState.generation && (generationState.isActive || generationState.isComplete || generationState.hasError)}
+			<div class="section">
+				<GenerationStatus
+					status={generationState.status}
+					startTime={generationState.generation.startTime}
+					estimatedTime={null}
+				/>
+			</div>
+		{/if}
+
+		<!-- Error Display -->
+		{#if generationState.generation && generationState.hasError && generationState.generation.error}
+			<div class="section">
+				<ErrorDisplay
+					error={generationState.generation.error}
+					onDismiss={() => updateGeneration(id, { error: null })}
+				/>
+			</div>
+		{/if}
+
+		<!-- Video Player -->
+		{#if generationState.generation && generationState.isComplete && generationState.generation.videoUrl}
+			<div class="section video-section">
+				<VideoPlayer videoUrl={generationState.generation.videoUrl} metadata={null} />
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	.model-row {
+		border: 1px solid var(--border, #e5e7eb);
+		border-radius: 0.5rem;
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+		background: var(--bg-secondary, #ffffff);
+	}
+
+	.row-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.5rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--border, #e5e7eb);
+	}
+
+	.row-title {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: var(--text, #111827);
+	}
+
+	.row-content {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.generate-section {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-end;
+		gap: 1rem;
+	}
+
+	.cost-estimator-wrapper {
+		flex: 1;
+	}
+
+	.video-section {
+		margin-top: 1rem;
+	}
+</style>
+
