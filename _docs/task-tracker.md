@@ -19,13 +19,13 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Progress Summary
 
-**Overall:** 26/63 tasks complete (41.3%)
+**Overall:** 30/63 tasks complete (47.6%)
 
 **By Phase:**
 - Phase 0 (Documentation): 6/7 (85.7%)
 - Phase 1 (Foundation): 13/13 (100%)
 - Phase 2 (API & State): 7/7 (100%)
-- Phase 3 (UI Components): 0/9 (0%)
+- Phase 3 (UI Components): 4/9 (44.4%)
 - Phase 4 (Pages & ModelRow): 0/4 (0%)
 - Phase 5 (Integration): 0/3 (0%)
 - Phase 6 (Polish): 0/4 (0%)
@@ -99,14 +99,14 @@ Simple progress tracker for AI Video Generation Pipeline MVP. Reference: [task-l
 
 ## Phase 3: Base & Feature UI Components
 
-**Progress:** 0/9 (0%)
+**Progress:** 4/9 (44.4%)
 **Reference:** [task-list/04-base-ui-components.md](./task-list/04-base-ui-components.md), [task-list/05-feature-components.md](./task-list/05-feature-components.md)
 
 ### Base UI Components
-- [ ] UI-001 - Button Component
-- [ ] UI-002 - Input Component
-- [ ] UI-003 - Select Component
-- [ ] UI-004 - VideoPlayer Component
+- [x] UI-001 - Button Component
+- [x] UI-002 - Input Component
+- [x] UI-003 - Select Component
+- [x] UI-004 - VideoPlayer Component
 
 ### Feature Components
 - [ ] COMP-001 - ModelSelector Component
