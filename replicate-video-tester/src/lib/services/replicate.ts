@@ -19,13 +19,15 @@ import {
  * @returns True if object matches Prediction structure
  */
 function isPrediction(obj: unknown): obj is Prediction {
+	if (typeof obj !== "object" || obj === null) {
+		return false;
+	}
+	const record = obj as Record<string, unknown>;
 	return (
-		typeof obj === "object" &&
-		obj !== null &&
-		"id" in obj &&
-		"status" in obj &&
-		typeof (obj as any).id === "string" &&
-		typeof (obj as any).status === "string"
+		"id" in record &&
+		"status" in record &&
+		typeof record.id === "string" &&
+		typeof record.status === "string"
 	);
 }
 

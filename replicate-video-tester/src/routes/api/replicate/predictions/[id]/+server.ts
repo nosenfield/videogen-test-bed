@@ -11,8 +11,9 @@ export const GET: RequestHandler = async ({ params }) => {
 	try {
 		const { id } = params;
 
-		if (!id) {
-			return json({ error: 'Missing prediction ID' }, { status: 400 });
+		// Validate prediction ID
+		if (!id || typeof id !== 'string' || id.trim() === '') {
+			return json({ error: 'Missing or invalid prediction ID' }, { status: 400 });
 		}
 
 		// Get configured Replicate client (handles API key validation)
@@ -48,7 +49,10 @@ export const GET: RequestHandler = async ({ params }) => {
 			},
 		});
 	} catch (error) {
-		console.error('Error getting prediction:', error);
+		// Log error in development only (server-side)
+		if (import.meta.env.DEV) {
+			console.error('Error getting prediction:', error);
+		}
 		return json(
 			{
 				error: error instanceof Error ? error.message : 'Failed to get prediction',
