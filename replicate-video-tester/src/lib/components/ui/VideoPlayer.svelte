@@ -18,11 +18,14 @@
 	let showMetadata = $state(false);
 	let volume = $state(1.0);
 	let isValidUrl = $state(true);
+	let isLoading = $state(true);
+	let hasError = $state(false);
 
 	// Validate videoUrl prop and prevent rendering invalid URLs
 	$effect(() => {
 		if (!videoUrl || typeof videoUrl !== "string") {
 			isValidUrl = false;
+			isLoading = false;
 			return;
 		}
 		// Basic URL validation to prevent XSS - only allow http/https
@@ -31,13 +34,33 @@
 			// Only allow http and https protocols (data: protocol removed for security)
 			if (!["http:", "https:"].includes(url.protocol)) {
 				isValidUrl = false;
+				isLoading = false;
 				return;
 			}
 			isValidUrl = true;
+			isLoading = true;
+			hasError = false;
 		} catch (error) {
 			isValidUrl = false;
+			isLoading = false;
 		}
 	});
+
+	// Handle video loading events
+	function handleLoadStart() {
+		isLoading = true;
+		hasError = false;
+	}
+
+	function handleLoadedData() {
+		isLoading = false;
+		hasError = false;
+	}
+
+	function handleError() {
+		isLoading = false;
+		hasError = true;
+	}
 
 	// Derive playing state from video element
 	const isPlaying = $derived(videoElement ? !videoElement.paused : false);
@@ -121,7 +144,24 @@
 <div class="video-player" onmouseenter={() => (showMetadata = true)} onmouseleave={() => (showMetadata = false)}>
 	<div class="video-container">
 		{#if isValidUrl}
-			<video bind:this={videoElement} src={videoUrl} class="video" controls={false}></video>
+			<video
+				bind:this={videoElement}
+				src={videoUrl}
+				class="video"
+				controls={false}
+				onloadstart={handleLoadStart}
+				onloadeddata={handleLoadedData}
+				onerror={handleError}
+			></video>
+			{#if isLoading}
+				<div class="skeleton-loader" role="status" aria-label="Loading video">
+					<div class="skeleton-spinner"></div>
+					<span class="skeleton-text">Loading video...</span>
+				</div>
+			{/if}
+			{#if hasError}
+				<div class="error-message">Failed to load video</div>
+			{/if}
 		{:else}
 			<div class="error-message">Invalid video URL</div>
 		{/if}
@@ -286,6 +326,36 @@
 		color: var(--error);
 		background: var(--bg-gray);
 		border-radius: 0.375rem;
+	}
+
+	.skeleton-loader {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		background: rgba(0, 0, 0, 0.7);
+		color: white;
+		z-index: 10;
+	}
+
+	.skeleton-spinner {
+		width: 2rem;
+		height: 2rem;
+		border: 3px solid rgba(255, 255, 255, 0.3);
+		border-top-color: white;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	.skeleton-text {
+		font-size: 0.875rem;
+		font-weight: 500;
 	}
 </style>
 

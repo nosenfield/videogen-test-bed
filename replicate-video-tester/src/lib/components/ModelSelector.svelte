@@ -36,15 +36,20 @@
 		</div>
 	{/if}
 {:else}
-	<Select
-		id="model-select"
-		value={value}
-		onChange={onChange}
-		options={[]}
-		placeholder="Loading models..."
-		label="Model"
-		disabled
-	/>
+	<div class="loading-container">
+		<Select
+			id="model-select"
+			value={value}
+			onChange={onChange}
+			options={[]}
+			placeholder="Loading models..."
+			label="Model"
+			disabled
+		/>
+		<div class="loading-spinner" role="status" aria-label="Loading models">
+			<div class="spinner-circle"></div>
+		</div>
+	</div>
 {/if}
 
 <style>
@@ -57,6 +62,35 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.loading-container {
+		position: relative;
+	}
+
+	.loading-spinner {
+		position: absolute;
+		right: 0.75rem;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 1rem;
+		height: 1rem;
+		pointer-events: none;
+	}
+
+	.spinner-circle {
+		width: 100%;
+		height: 100%;
+		border: 2px solid var(--border, #e5e7eb);
+		border-top-color: var(--primary, #0ea5e9);
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>
 
